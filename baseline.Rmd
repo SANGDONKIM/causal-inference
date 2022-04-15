@@ -1,0 +1,269 @@
+---
+title: "SCM"
+description: |
+  A new article created using the Distill format.
+author:
+  - name: SangDon Kim
+date: "`r Sys.Date()`"
+output: distill::distill_article
+---
+
+```{r}
+library(dagitty)
+library(tidyverse)
+library(psychTools)
+library(bnlearn)
+library(skimr)
+
+```
+
+# causal diagram
+
+변수 간의 상관관계를 도식화하여 쉽게 이해하기 위해서 사용함
+
+# Graph 용어 정리
+
+-   노드의 위치를 [pos = ""]로 정할 수 있음 
+
+-   왼쪽 상단이 (0, 0)에 해당함 
+
+```{r}
+g <- dagitty('dag {
+    X [pos="0,1"]
+    Y [pos="1,1"]
+    Z [pos="2,1"]
+
+    X -> Y -> Z 
+}')
+
+plot(g)
+
+```
+
+-   $X$는 $Y$의 parent
+-   $Y$는 $X$의 child
+-   두 개의 엣지가 향하는 방향이 같은 경우이므로 direct path에 해당
+-   $X$는 $Y$, $Z$의 ancestor
+-   $Y$, $Z$는 $X$의 descentant
+-   화살표가 있으므로 directed path(없을 경우 undirected path)
+
+## Example
+
+```{r}
+g <- dagitty('dag {
+    X [pos="0,1"]
+    Y [pos="1,1"]
+    Z [pos="2,1"]
+    W [pos="1,0"]
+    T [pos="2,2"]
+    
+    X -> Y -> Z -> T
+    X -> W -> Y -> T
+    W -> Z
+}')
+plot(g)
+```
+
+-   $Z$의 parent는 $Y,\, W$
+-   $Z$의 ancestor는 $X, \, W, \, Y$
+-   $W$의 child는 $Y, \, Z$
+-   $W$의 descendant는 $Y, \, Y, \, Z$
+
+```{r}
+dagitty::parents(g, "Z")
+dagitty::ancestors(g, "Z")
+dagitty::children(g, "W")
+dagitty::descendants(g, "W")
+```
+
+# Graph 종류
+
+## Chain(사슬)
+
+-   $X \not\!\perp\!\!\!\perp Z$
+
+-   $X \perp\!\!\!\perp Z | Y$
+
+-   불면증($X$)는 피로($Y$)의 원인이 되고, 집중력($Z$)의 원인이 됨 
+
+```{r}
+g <- dagitty('dag {
+    X [pos="0,1"]
+    Y [pos="1,1"]
+    Z [pos="2,1"]
+
+    X -> Y -> Z 
+}')
+
+plot(g)
+```
+
+## Fork(Common cause, 분기)
+
+-   $X \not\!\perp\!\!\!\perp Z$
+
+-   $X \perp\!\!\!\perp Z | Y$
+
+-   질병($Y$)는 증상 $X$, $Y$의 원인이 됨 
+
+```{r}
+g <- dagitty('dag {
+    X [pos="0,1"]
+    Y [pos="1,0"]
+    Z [pos="2,1"]
+
+    Y -> X 
+    Y -> Z
+}')
+
+plot(g)
+```
+
+
+
+## Collider(or immorality, 충돌부)
+
+```{r}
+g <- dagitty('dag {
+    X [pos="0,0"]
+    Y [pos="1,1"]
+    Z [pos="2,0"]
+
+    X -> Y 
+    Z -> Y
+}')
+
+plot(g)
+```
+
+-   $X \perp\!\!\!\perp Z$
+
+-   $X \not\!\perp\!\!\!\perp Z | Y$
+
+-   학급의 수준($X$)과 학생들의 지능($Z$)은 성적($Y$)의 원인이 됨 
+
+
+
+
+
+# $d$-seperated($d$ 분리)
+
+# R package
+
+-   bnlearn 
+
+-   pcalg 
+
+
+# tutorial
+
+## Data description 
+
+25가지 성격 자기 보고 항목, 인구통계학 변수(성별, 교육, 연령)
+
+```{r}
+data('bfi')
+skim(bfi)
+bfi %>% str()
+bfi <- janitor::clean_names(bfi)
+```
+
+```{r}
+bfiNoNA <- na.omit(bfi)
+```
+
+```{r}
+bfiNoNA <- bfiNoNA %>% 
+    mutate(gender = factor(gender, levels = c(1, 2), labels = c("Male", "Female"))) %>%
+    mutate_if(is.integer, as.numeric)
+# bfiNoNA %>% str()
+```
+
+
+```{r}
+bfisub <- bfiNoNA %>% 
+    select(age, education, c5, o1, n5)
+```
+
+
+```{r}
+Whitelist <- matrix(c("age", "education"),, 2, byrow = T)
+
+colnames(Whitelist) <- c("from", "to")
+```
+
+
+```{r}
+Blacklist <- matrix(c("education", "age", 
+                      "c5", "age", 
+                      "o1", "age", 
+                      "n5", "age"), , 2, byrow = T)
+colnames(Blacklist) <- c("from", "to")
+Blacklist
+
+```
+
+## estimation 
+
+```{r}
+res <- bnlearn::iamb(bfisub, whitelist = Whitelist, blacklist = Blacklist)
+res
+```
+
+
+## visualization
+
+```{r}
+labels <- c("age", "education", "waste my time", "am full of ideas", "panic easily")
+library(qgraph)
+
+qgraph(res, nodeNames = labels, legend.cex = 0.5, asize = 5, edge.color = "black")
+
+```
+
+## parameterization 
+
+```{r}
+res <- set.arc(res, from = "n5", to = "c5")
+
+g <- qgraph(res, nodeNames = labels, legend.cex = 0.5, asize = 5, edge.color = "black")
+g
+```
+
+## fitting
+
+```{r}
+fit <- bn.fit(res, bfisub)
+fit$education
+fit$c5
+```
+
+
+## boostrapping  
+
+```{r}
+boot <- boot.strength(bfisub, R = 1000, algorithm = "iamb", 
+                      algorithm.args = list(whitelist = Whitelist, 
+                                            blacklist = Blacklist))
+
+```
+
+
+```{r}
+qgraph(boot, nodeNames = labels, legend.cex = 0.5, edge.labels = T, layout = g$layout,
+       asize = 5, edge.color = "black")
+
+```
+
+
+# covid example 
+
+<https://osf.io/vzawg/>
+
+
+
+# 참고 자료
+
+<https://www.youtube.com/watch?v=rbZ4ebZCHMY&list=PLKKkeayRo4PWyV8Gr-RcbWcis26ltIyMN&index=14>
+
+<https://www.youtube.com/watch?v=N-EWlpkisnQ&list=PLliBbGBc5nn2QcZ-5K_S08wJR6kt2EK1R&index=4>
