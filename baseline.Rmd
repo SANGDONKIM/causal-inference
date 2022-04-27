@@ -17,15 +17,39 @@ library(skimr)
 
 ```
 
+## Potential outcome
+
+$$
+\text{Causal effect of treatment} = \text{처치 그룹 하에서 처치를 받았을 때의 결과} - \text{처치그룹 하에서 처치를 받지 않았다면 얻을 잠재적 결과(counterfactual)}
+$$ - 즉, 처치 그룹의 실제결과와 잠재적 결과 간의 차이를 비교분석
+
+-   현실에서는 counterfactual을 관찰할 수 없음
+
+-   대안 : 통제그룹을 두고 처리그룹과 통제그룹(처리를 받지 않은 그룹)을 비교
+
+counterfactual과 통제 그룹 간의 차이를 좁히는 것이 인과추론의 정확도를 결정하는 핵심 요소로 볼 수 있음$\text{(처치 그룹에서 처치가 없을 대의 결과)} \approx \text{(처치를 받지 않은 통제 그룹에서의 결과)}$
+
+### Selection bias
+
+$$
+\begin{align}
+\text{Selection bias} &= \text{처치를 받은 처치 그룹의 결과} - \text{처치를 받지 않은 통제 그룹의 결과} \\
+&= (\text{처치를 받은 처치 그룹의 결과} - \text{처치를 받지 않은 처치 그룹의 결과})+(\text{처치를 받지 않은 처치 그룹의 결과} - \text{처치를 받지 않은 통제 그룹의 결과}) \\
+&=\text{Causal effect} + \text{Selection bias}
+\end{align}
+$$
+
+Selection bias를 줄이기 위해서는 counterfactual과 가까운 통제 그룹을 찾을 수 있는 연구 디자인을 고안해야 함
+
 # causal diagram
 
 변수 간의 상관관계를 도식화하여 쉽게 이해하기 위해서 사용함
 
 # Graph 용어 정리
 
--   노드의 위치를 [pos = ""]로 정할 수 있음 
+-   노드의 위치를 [pos = ""]로 정할 수 있음
 
--   왼쪽 상단이 (0, 0)에 해당함 
+-   왼쪽 상단이 (0, 0)에 해당함
 
 ```{r}
 g <- dagitty('dag {
@@ -84,7 +108,7 @@ dagitty::descendants(g, "W")
 
 -   $X \perp\!\!\!\perp Z | Y$
 
--   불면증($X$)는 피로($Y$)의 원인이 되고, 집중력($Z$)의 원인이 됨 
+-   불면증($X$)는 피로($Y$)의 원인이 되고, 집중력($Z$)의 원인이 됨
 
 ```{r}
 g <- dagitty('dag {
@@ -104,7 +128,7 @@ plot(g)
 
 -   $X \perp\!\!\!\perp Z | Y$
 
--   질병($Y$)는 증상 $X$, $Y$의 원인이 됨 
+-   질병($Y$)는 증상 $X$, $Y$의 원인이 됨
 
 ```{r}
 g <- dagitty('dag {
@@ -118,8 +142,6 @@ g <- dagitty('dag {
 
 plot(g)
 ```
-
-
 
 ## Collider(or immorality, 충돌부)
 
@@ -140,24 +162,19 @@ plot(g)
 
 -   $X \not\!\perp\!\!\!\perp Z | Y$
 
--   학급의 수준($X$)과 학생들의 지능($Z$)은 성적($Y$)의 원인이 됨 
-
-
-
-
+-   학급의 수준($X$)과 학생들의 지능($Z$)은 성적($Y$)의 원인이 됨
 
 # $d$-seperated($d$ 분리)
 
 # R package
 
--   bnlearn 
+-   bnlearn
 
--   pcalg 
-
+-   pcalg
 
 # tutorial
 
-## Data description 
+## Data description
 
 25가지 성격 자기 보고 항목, 인구통계학 변수(성별, 교육, 연령)
 
@@ -179,19 +196,16 @@ bfiNoNA <- bfiNoNA %>%
 # bfiNoNA %>% str()
 ```
 
-
 ```{r}
 bfisub <- bfiNoNA %>% 
     select(age, education, c5, o1, n5)
 ```
-
 
 ```{r}
 Whitelist <- matrix(c("age", "education"),, 2, byrow = T)
 
 colnames(Whitelist) <- c("from", "to")
 ```
-
 
 ```{r}
 Blacklist <- matrix(c("education", "age", 
@@ -203,13 +217,12 @@ Blacklist
 
 ```
 
-## estimation 
+## estimation
 
 ```{r}
 res <- bnlearn::iamb(bfisub, whitelist = Whitelist, blacklist = Blacklist)
 res
 ```
-
 
 ## visualization
 
@@ -221,7 +234,7 @@ qgraph(res, nodeNames = labels, legend.cex = 0.5, asize = 5, edge.color = "black
 
 ```
 
-## parameterization 
+## parameterization
 
 ```{r}
 res <- set.arc(res, from = "n5", to = "c5")
@@ -238,8 +251,7 @@ fit$education
 fit$c5
 ```
 
-
-## boostrapping  
+## boostrapping
 
 ```{r}
 boot <- boot.strength(bfisub, R = 1000, algorithm = "iamb", 
@@ -248,19 +260,106 @@ boot <- boot.strength(bfisub, R = 1000, algorithm = "iamb",
 
 ```
 
-
 ```{r}
 qgraph(boot, nodeNames = labels, legend.cex = 0.5, edge.labels = T, layout = g$layout,
        asize = 5, edge.color = "black")
 
 ```
 
-
-# covid example 
+# covid example
 
 <https://osf.io/vzawg/>
 
+# Unobserved confounding, bounds, and sensitivity analysis
 
+-   관측 데이터로 인과추론을 하는 전략은 관측되지 않은 교란 요인이 없다는 검증할 수 없는 가정 하에서 관측된 공변량을 조정하는 것
+
+-   일반적으로 이러한 가정은 만족될 수 없음 
+
+-   따라서 관찰되지 않은 교란 요인이 없다는 기본 가정이 위반되었을 때, 인과 추론에 미치는 영향을 정량적으로 볼 수 있어야 함 
+
+-   이는 민감도 분석을 통해 할 수 있음
+
+
+```{r}
+g <- dagitty('dag {
+    T [pos="0,1"]
+    W [pos="1,0"]
+    Y [pos="2,1"]
+
+    W -> T 
+    W -> Y
+}')
+
+plot(g)
+```
+
+$$
+E[Y(1) - Y(0)] = E_W[E[Y|T=1,W] - E[Y|T=0,W]]
+$$
+
+```{r}
+g <- dagitty('dag {
+    W [pos="0,0"]
+    T [pos="0,1"]
+    Y [pos="1,1"]
+    U [pos="1,0"]
+
+    W -> T 
+    W -> Y
+    U -> T
+    U -> Y
+    T -> Y
+}')
+
+plot(g)
+```
+
+$$
+\begin{align}
+E[Y(1) - Y(0)] &= E_{W, U}[E[Y|T=1,W, U] - E[Y|T=0,W, U]] \\ 
+&\approx^?  E_W[E[Y|T=1, W] - E[Y|T=0, W]]
+\end{align}
+$$
+
+**신뢰성 체감의 법칙**
+
+-   추론의 신뢰성은 가정의 강도에 따라 감소한다
+
+-   즉, 가정이 약할수록 얻어지는 결론이 제한적일 수는 있지만, 좀더 신뢰할 수 있음
+
+### Observational-Counterfactual Decomposition
+
+$$
+\begin{align}
+E[X] = \sum_y P_Y(y) \cdot E[X|Y=y]
+\end{align}
+$$
+
+$$
+\begin{align}
+E[Y(1)] = \sum_t P_T(t) \cdot E[Y(1)|T=t] = P(T=1) \cdot E[Y(1)|T=1] + P(T=0) \cdot E[Y(1)|T=0]
+\end{align}
+$$
+
+$$
+\begin{align}
+E[Y(1) - Y(0)] &= E[Y(1)] - E[Y(0)] \\
+&=P(T=1) \cdot E[Y(1)|T=1] + P(T=0) \cdot E[Y(1)|T=0] \\
+&-P(T=1)E[Y(0)|T=1] - P(T=0)E[Y(0)|T=0] \\ 
+\newline 
+&=P(T=1) \cdot E[Y|T=1] + P(T=0) \cdot E[Y(1)|T=0] \\
+&-P(T=1)E[Y(0)|T=1] - P(T=0)E[Y|T=0]
+\end{align}
+$$
+
+### No-Assumption Bound
+
+![](images/%EC%8A%A4%ED%81%AC%EB%A6%B0%EC%83%B7%202022-04-27%20%EC%98%A4%ED%9B%84%2010.58.59.png)
+
+![](images/%EC%8A%A4%ED%81%AC%EB%A6%B0%EC%83%B7%202022-04-27%20%EC%98%A4%ED%9B%84%2011.07.26.png)
+
+No-assumption interval length : $(1-\pi)b + \pi b - \pi a - (1 - \pi) a = b - a$
 
 # 참고 자료
 
