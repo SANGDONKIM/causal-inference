@@ -8,13 +8,15 @@ date: "`r Sys.Date()`"
 output: distill::distill_article
 ---
 
+
+# Packages
+
 ```{r}
 library(dagitty)
 library(tidyverse)
 library(psychTools)
 library(bnlearn)
 library(skimr)
-
 ```
 
 ## Potential outcome

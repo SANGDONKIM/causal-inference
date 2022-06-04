@@ -1,0 +1,289 @@
+---
+title: "Making Sense of Sensitivity: Extending Omitted Variable Bias"
+description: |
+  논문 요약 
+author:
+  - name: SangDon Kim
+date: "`r Sys.Date()`"
+output:
+  distill::distill_article:
+    code_folding: false
+    toc: true
+css: [style.css]
+---
+
+# Frisch-waugh-Lovell theorem
+
+$X_1, X_2$는 독립변수의 집합을 의미함
+
+$$
+\begin{align*}
+y = X_1 \beta_1 + X_2 \beta_2 + \epsilon
+\end{align*}
+$$ 추정하고자 하는 $\hat{\beta}$는 다음과 같음
+
+$$
+\begin{align*}
+y = X_1 \hat{\beta_1} + X_2 \hat{\beta_2} + e
+\end{align*}
+$$ normal equation으로 표현하면 다음과 같음
+
+$$
+\begin{align*}
+\begin{bmatrix}
+X_1^t X_1 & X_1^t X_2 \\
+X_2^t X_1 & X_1^2 X_2
+\end{bmatrix}
+\begin{bmatrix}
+\hat{\beta_1}  \\
+\hat{\beta_2} 
+\end{bmatrix} = 
+\begin{bmatrix}
+X_1^t y  \\
+X_2^t y 
+\end{bmatrix} 
+\end{align*}
+$$
+
+먼저 $\hat{\beta_1}$에 대해 풀면 다음과 같다.
+
+$$
+\begin{align*}
+(X_1^tX_1)\hat{\beta_1} + (X_1^tX_2)\hat{\beta_2} &= X_1^ty \\
+(X_1^tX_1)\hat{\beta_1} &= X_1^ty - (X_1^tX_2)\hat{\beta_2} \\ 
+\hat{\beta_1} &= (X_1^tX_1)^{-1}X_1^ty - (X_1^tX_1)^{-1}X_1^tX_2\hat{\beta_2} \\
+\hat{\beta_1} &= (X_1^tX_1)^{-1}X_1^t(y - X_2\hat{\beta_2}) 
+\end{align*}
+$$
+
+
+다음으로 $\hat{\beta_2}$에 대해 정리하면 다음과 같다. 
+
+$$
+\begin{align*}
+(X_2^tX_1)\hat{\beta_1} + (X_2^tX_2)\hat{\beta_2} &= X_2^ty \\
+(X_2^tX_1) (X_1^tX_1)^{-1}X_1^t(y - X_2\hat{\beta_2}) +(X_2^tX_2)\hat{\beta_2} &= X_2^ty \\ 
+X_2^tX_1(X_1^tX_1)^{-1}X_1^ty - X_2^tX_1(X_1^tX_1)^{-1}X_2^t\hat{\beta}_2 + X_2^tX_2\hat{\beta}_2 &=X_2^ty \\
+X_2^ty - X_2^tX_1(X_1^tX_1)^{-1}X_1^ty &= X_2^tX_2\hat{\beta}_2 - X_2^tX_1(X_1^tX_1)^{-1}X_2^t\hat{\beta}_2 \\ 
+X_2^t(I - X_1(X_1^tX_1)^{-1}X_1^t)y &= [X_2^t(I - X_1(X_1^tX_1)^{-1}X_1^t)X_2]\hat{\beta}_2 \\
+\hat{\beta}_2 &= [X_2^t(I - X_1(X_1^tX_1)^{-1}X_1^t)X_2]^{-1}X_2^t(I - X_1(X_1^tX_1)^{-1}X_1^t)y \\
+&=[X_2^tM_1X_2]^{-1}X_2^tM_1y, \quad M_1 = I - X_1(X_1^tX_1)^{-1}X_1^t
+\end{align*}
+$$
+
+회귀분석에서 $M$은 residual maker로 $My$는 $y \sim X$의 잔차를 의미한다. 
+
+$$
+\begin{align*}
+e &= y - X\hat{\beta} \\ 
+&=y - X(X^tX)^{-1}X^ty \\ 
+&=(I - X(X^tX)^{-1}X^t)y \\ 
+&=My
+\end{align*}
+$$
+
+
+따라서 위의 식 $\hat{\beta}_2 = [X_2^tM_1X_2]^{-1}X_2^tM_1y$에서 
+
+$M_1y$는 $y \sim X_1$의 잔차, $M_1X_2$는 $X_2 \sim X_1$를 의미한다. 
+
+$$
+\begin{align*}
+\hat{\beta}_2 &= [X_2^tM_1X_2]^{-1}X_2^tM_1y \\ 
+&=[X_2^tM_1^tM_1X_2]^{-1}X_2^tM_1^tM_1y, \quad M_1^tM1 = M_1 : \text{idempotent matrix} \\ 
+&= [X_2^{*t}X_2^*]^{-1}X_2^{*t}y^*, \quad X_2^* = M_1X_2, \quad y^* = M_1y
+\end{align*}
+$$
+
+
+즉, 정리하면 다음과 같다. 
+
+$$
+\begin{align*}
+y = X_1\beta_1 + X_2\beta_2 + \epsilon \longrightarrow y &= X_1\hat{\beta}_1 + X_2\hat{\beta}_2 + e \\ 
+\therefore \hat{\beta}_2 &= [X_2^{*t}X_2^*]^{-1}X_2^{*t}y^*, \quad X_2^* = M_1X_2, \quad y^* = M_1y
+\end{align*}
+$$
+
+1. $y ~ \sim X_1$의 잔차 $\longrightarrow$ $y^*$
+    
+    -  $y ~ \sim X_1$로 회귀모형을 fitting해서 잔차 $y^*$을 구한다. 
+
+2. $X_2 ~ \sim X_1$의 잔차 $\longrightarrow$ $X_2^*$
+
+    -  $X_2 ~ \sim X_1$로 회귀모형을 fitting해서 잔차 $X_2^*$를 구한다. 
+    
+3. $y^* \sim X_2^*$ $\longrightarrow$ $\hat{\beta}_2$
+
+    -  잔차 $y^*$와 잔차 $X_2^*$를 회귀모형으로 fitting해서 얻은 coefficient는 $\hat{\beta}_2$와 같다. 
+
+
+
+
+
+## Example
+
+$$
+\begin{align*}
+y = \beta_0 + \beta_1X_1 + \beta_2X_2 + \beta_3X_3 + \epsilon
+\end{align*}
+$$
+
+Frisch-waugh-Lovell theorem을 적용하면 
+
+1. $y ~ \sim X_1$의 잔차 $\longrightarrow$ $e_1$
+    
+    -  $y ~ \sim X_1$로 회귀모형을 fitting해서 잔차 $e_1$을 구한다. 
+
+2. $X_2 ~ \sim X_1$의 잔차 $\longrightarrow$ $e_2$
+
+    -  $X_2 ~ \sim X_1$로 회귀모형을 fitting해서 잔차 $e_2$를 구한다. 
+    
+3. $X_3 ~ \sim X_1$의 잔차 $\longrightarrow$ $e_3$
+
+    -  $X_3 ~ \sim X_1$로 회귀모형을 fitting해서 잔차 $e_3$를 구한다. 
+    
+4. $e_1 \sim e_2 + e_3$를 회귀모형으로 fitting해서 얻은 coefficient는 $\hat{\beta}_2, \, \hat{\beta}_3$와 같다.  
+
+
+```{r}
+
+N <- 1000
+set.seed(1)
+df <- data.frame(
+y = rnorm(N, 1, 1.5),
+x1 = rnorm(N, 1, 2),
+x2 = rnorm(N, 1, 0.5),
+x3 = rnorm(N, 1, 1.2))
+
+e1 <- lm(y ~ x1, df)$residuals
+e2 <- lm(x2 ~ x1, df)$residuals
+e3 <- lm(x3 ~ x1, df)$residuals
+
+resid_df <- data.frame(e1, e2, e3)
+```
+
+```{r}
+print(coef(lm(e1 ~ e2+e3, resid_df)), digits = 2)
+```
+
+```{r}
+print(coef(lm(y~x1+x2+x3, df)), digits = 2)
+```
+
+
+# paper 
+
+
+## 3.1 The traditional omitted variable bias 
+
+-   $D$ : treatment variable 
+
+-   $X$ : observed covariates 
+
+-   $Z$ : unobserved covariates 
+
+$$
+\begin{align*}
+Y = \hat{\tau}D + X\hat{\beta} + \hat{\gamma}Z + \hat{\epsilon}_{null}
+\end{align*}
+$$
+
+
+$$
+\begin{align*}
+Y = \hat{\tau}_{res}D + X\hat{\beta}_{res} + \hat{\epsilon}_{res}
+\end{align*}
+$$
+
+$Y = \hat{\tau}_{res}D + X\hat{\beta}_{res} + \hat{\epsilon}_{res}$에 FWL을 적용하면 
+
+1. $y ~ \sim X$의 잔차 $\longrightarrow$ $Y^{\perp X}$
+    
+2. $D ~ \sim X$의 잔차 $\longrightarrow$ $D^{\perp X}$
+
+4. $Y^{\perp X} \sim D^{\perp X}$ $\longrightarrow$ $\hat{\tau}_{res}$
+
+$$
+\begin{align*}
+\hat{\tau}_{res} = \frac{cov(D^{\perp X}, Y^{\perp X})}{var(D^{\perp X})}
+\end{align*}
+$$
+
+
+$Y = \hat{\tau}D + X\hat{\beta} + \hat{\gamma}Z + \hat{\epsilon}_{null}$에 FWL을 적용하면 
+
+1. $y ~ \sim X$의 잔차 $\longrightarrow$ $Y^{\perp X}$
+    
+2. $D ~ \sim X$의 잔차 $\longrightarrow$ $D^{\perp X}$
+
+2. $Z ~ \sim X$의 잔차 $\longrightarrow$ $Z^{\perp X}$
+
+4. $Y^{\perp X} \sim D^{\perp X} + Z^{\perp X}$ $\longrightarrow$ $\hat{\tau}, \, \hat{\gamma}$
+
+    -   $Y^{\perp X} = \hat{\tau}D^{\perp X} + \hat{\gamma}Z^{\perp X}$
+
+
+$$
+\begin{align*}
+\hat{\tau}_{res} &= \frac{cov(D^{\perp X}, Y^{\perp X})}{var(D^{\perp X})} \\ 
+&= \frac{cov(D^{\perp X},\hat{\tau}D^{\perp X} + \hat{\gamma}Z^{\perp X})}{var(D^{\perp X})} \\ 
+&= \frac{\hat{\tau}cov(D^{\perp X},D^{\perp X}) + \hat{\gamma}cov(D^{\perp X}, Z^{\perp X})}{var(D^{\perp X})} \\
+&=\hat{\tau} + \hat{\gamma} \cdot \hat{\delta}, \quad \hat{\delta} = \frac{cov(D^{\perp X}, Z^{\perp X})}{var(D^{\perp X})}
+\end{align*}
+$$
+
+
+따라서 unobserved confounder에 의한 추정량의 bias는 다음과 같다. 
+
+$$
+\begin{align*}
+\hat{bias} = \hat{\tau}_{res} - \hat{\tau} =  \hat{\gamma} \cdot \hat{\delta}
+\end{align*}
+$$
+
+$Z$는 unobserved confounder이므로 $\hat{\gamma}, \, \hat{\delta}$의 부호를 알 수 없다. 따라서 unobserved confounder의 추정량에 영향을 미치는 크기를 고려해야 한다. 즉, 연구의 주요 결론에 영향을 줄 정도로 추정량을 변경하려면 unobserved confounder $Z$의 효과는 어느 정도 크기여야 하는가? 
+
+이는 sensitivity analysis를 통해 파악할 수 있다. 
+
+
+## contour plot 
+
+
+
+
+```{r}
+library(modelsummary)
+
+N = 10000
+Z = rbinom(N, 1, prob = .5)
+D = rbinom(N, 1, prob = .8 - .6 * Z)
+Y = 1 * D + 3 * Z + rnorm(N)
+
+mod = list(
+  "Correct" = lm(Y ~ D + Z),
+  "Confounded" = lm(Y ~ D),
+  "Auxiliary" = lm(Z ~ D))
+
+coef(mod$Confounded)["D"]
+coef(mod$Correct)["D"] + coef(mod$Correct)["Z"] * coef(mod$Auxiliary)["D"]
+
+```
+
+```{r}
+library(broom)
+ti <- tidy(mod$Confounded)
+gl <- glance(mod$Confounded)
+gl$df.residual
+tvalue = ti$statistic[ti$term == "D"]
+df = gl$df.residual
+fq = abs(tvalue/sqrt(df))*1
+RV = 1/2 * (sqrt(fq^4 + 4 * fq^2) - fq^2)
+RV
+```
+
+# 참고자료
+
+<https://bookdown.org/ts_robinson1994/10_fundamental_theorems_for_econometrics/frisch.html>
+
+<https://arelbundock.com/posts/robustness_values/>

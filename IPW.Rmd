@@ -1,0 +1,91 @@
+---
+title: "IPW and propensity score matching"
+description: |
+  IPW and propensity score matching 요약
+author:
+  - name: SangDon Kim
+date: "`r Sys.Date()`"
+output:
+  distill::distill_article:
+    code_folding: true
+    toc: true
+css: [style.css]
+---
+
+# library 
+
+```{r}
+library(data.table)
+library(tidyverse)
+library(ggdag)  # Make DAGs
+library(dagitty)  # Do DAG logic with R
+library(broom)  # Convert models to data frames
+library(MatchIt)  # Match things
+library(modelsummary)  # Make side-by-side regression tables
+
+set.seed(1234)   # Make all random draws reproducible
+```
+
+
+
+# tutorial
+
+```{r}
+dat <- fread("https://evalf21.classes.andrewheiss.com/data/mosquito_nets.csv")
+dat %>% str()
+```
+
+
+## description 
+
+모기장 사용이 말라리아 감염 위험을 줄이는지 여부에 관심이 있음 
+
+-   malaria_risk : 가족 중 말라리아에 감염될 가능성에 대한 척도($0 \sim 100$). 높을 수록 감염될 위험이 높음 
+
+-   net : 가정에서 모기장을 사용하는지 여부
+
+-   income : 가구의 월 소득 
+
+-   temporature : 밤 평균 기온
+
+-   health : 건강에 대한 척도(($0 \sim 100$)). 높을 수록 건강함
+
+-   household : 거주하는 사람의 수 
+
+-   registance : 변종 모기는 살충제에 저항력이 높고, 변종 모기에게 물릴 경우 말라리아 감염율이 높아짐($0 \sim 100$). 높을 수록 저항력이 높음 
+
+
+
+```{r}
+dat %>% 
+    group_by(net) %>% 
+    summarize(number = n(), 
+              avg = mean(malaria_risk))
+
+```
+
+
+```{r}
+model_wrong <- lm(malaria_risk ~ net, data = dat)
+
+tidy(model_wrong)
+```
+
+-   모기장을 사용했을 때, 말라리아에 감염될 가능성이 평균적으로 16.3 감소함 
+
+-   confounder가 있으므로 실제 인과효과로 볼 수 없음 
+
+
+
+```{r}
+matched_data <- matchit(net ~ income + temperature + health,
+                        data = dat,
+                        method = "nearest",
+                        distance = "mahalanobis",
+                        replace = TRUE)
+matched_data
+```
+
+## 참고자료 
+
+<https://evalf21.classes.andrewheiss.com/example/matching-ipw/>
