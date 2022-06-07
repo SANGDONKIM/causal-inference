@@ -246,7 +246,6 @@ $Z$는 unobserved confounder이므로 $\hat{\gamma}, \, \hat{\delta}$의 부호�
 
 ## OVB with the partial $R^2$ parameterization
 
-
 $$
 \begin{align*}
 \hat{bias} &= \hat{\gamma} \cdot \hat{\delta} \\ 
@@ -254,6 +253,15 @@ $$
 &=\hat{se}(\hat{\tau}_{res})\cdot\sqrt{\frac{R^2_{Y \sim Z|D, X} \cdot R^2_{D \sim Z|X}}{1-R^2_{D \sim Z|X}}}(df)
 \end{align*}
 $$
+
+## Robustness value 
+
+$$
+\begin{align*}
+RV_q = \frac{1}{2}(\sqrt{f^4_q + 4f^2_q - f^2_q})
+\end{align*}
+$$
+
 
 
 
